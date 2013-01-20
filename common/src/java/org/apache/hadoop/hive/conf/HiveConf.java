@@ -580,6 +580,12 @@ public class HiveConf extends Configuration {
     // cosmos custom configuation starts here
     // use short name for authorization
     HIVE_USE_SHORT_USER_NAME("hive.use.short.username", false),
+
+
+    // Hive Server authentication
+    HIVESERVER_KERBEROS_KEYTAB_FILE("hive.hiveserver.kerberos.keytab.file", ""),
+    HIVESERVER_KERBEROS_PRINCIPAL("hive.hiveserver.kerberos.principal", ""),
+    HIVESERVER_USE_THRIFT_SASL("hive.hiveserver.sasl.enabled", false),
     ;
 
     public final String varname;
