@@ -29,15 +29,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
-import javax.security.auth.login.LoginException;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.security.UserGroupInformation;
 
 /**
  * Hive Configuration.
@@ -578,6 +575,11 @@ public class HiveConf extends Configuration {
     // beginning and end of Driver.run, these will be run in the order specified
     HIVE_DRIVER_RUN_HOOKS("hive.exec.driver.run.hooks", ""),
     HIVE_DDL_OUTPUT_FORMAT("hive.ddl.output.format", null),
+
+
+    // cosmos custom configuation starts here
+    // use short name for authorization
+    HIVE_USE_SHORT_USER_NAME("hive.use.short.username", false),
     ;
 
     public final String varname;
@@ -951,13 +953,8 @@ public class HiveConf extends Configuration {
    * @throws IOException
    */
   public String getUser() throws IOException {
-    try {
-      UserGroupInformation ugi = ShimLoader.getHadoopShims()
-        .getUGIForConf(this);
-      return ugi.getUserName();
-    } catch (LoginException le) {
-      throw new IOException(le);
-    }
+    String ret = ShimLoader.getHadoopShims().getUserName(this);
+    return ret;
   }
 
   public static String getColumnInternalName(int pos) {
