@@ -69,8 +69,8 @@ import org.apache.hadoop.hive.ql.lockmgr.HiveLockManagerCtx;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockMode;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockObj;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockObject;
-import org.apache.hadoop.hive.ql.lockmgr.LockException;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockObject.HiveLockObjectData;
+import org.apache.hadoop.hive.ql.lockmgr.LockException;
 import org.apache.hadoop.hive.ql.log.PerfLogger;
 import org.apache.hadoop.hive.ql.metadata.AuthorizationException;
 import org.apache.hadoop.hive.ql.metadata.DummyPartition;
@@ -543,6 +543,17 @@ public class Driver implements CommandProcessor {
           }
         }
       }
+
+      if (op.equals(HiveOperation.GRANT_PRIVILEGE) ||
+          op.equals(HiveOperation.REVOKE_PRIVILEGE) ||
+          op.equals(HiveOperation.CREATEROLE) ||
+          op.equals(HiveOperation.DROPROLE) ||
+          op.equals(HiveOperation.GRANT_ROLE) ||
+          op.equals(HiveOperation.REVOKE_ROLE)){
+        ss.getAuthorizer().authorize(
+            op.getInputRequiredPrivileges(), op.getOutputRequiredPrivileges());
+      }
+
       if (outputs != null && outputs.size() > 0) {
         for (WriteEntity write : outputs) {
 
