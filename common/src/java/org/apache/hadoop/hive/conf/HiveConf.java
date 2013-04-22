@@ -121,6 +121,7 @@ public class HiveConf extends Configuration {
       HiveConf.ConfVars.METASTORE_END_FUNCTION_LISTENERS,
       HiveConf.ConfVars.METASTORE_PART_INHERIT_TBL_PROPS,
       HiveConf.ConfVars.METASTORE_PRE_EVENT_LISTENERS,
+      HiveConf.ConfVars.METASTORE_TOKEN_SIGNATURE,
       };
 
   /**
@@ -265,6 +266,7 @@ public class HiveConf extends Configuration {
     METASTORE_KERBEROS_PRINCIPAL("hive.metastore.kerberos.principal",
         "hive-metastore/_HOST@EXAMPLE.COM"),
     METASTORE_USE_THRIFT_SASL("hive.metastore.sasl.enabled", false),
+    METASTORE_TOKEN_SIGNATURE("hive.metastore.token.signature", ""),
     METASTORE_CLUSTER_DELEGATION_TOKEN_STORE_CLS(
         "hive.cluster.delegation.token.store.class",
         "org.apache.hadoop.hive.thrift.MemoryTokenStore"),
