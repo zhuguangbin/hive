@@ -81,7 +81,7 @@ public class RetryingMetaStoreClient implements InvocationHandler {
             (e.getCause() instanceof TTransportException)) {
           caughtException = (TException) e.getCause();
         } else if ((e.getCause() instanceof MetaException) && (
-            e.getCause().getMessage().matches("JDO[a-zA-Z]*Exception")
+            e.getCause().getMessage().matches(".*JDO[a-zA-Z]*Exception.*")
             || e.getCause().getMessage().matches(".*T(Transport|Protocol|Application)Exception.*") )) {
           caughtException = (MetaException) e.getCause();
         } else {
@@ -93,7 +93,7 @@ public class RetryingMetaStoreClient implements InvocationHandler {
         throw caughtException;
       }
       retriesMade++;
-      LOG.warn("MetaStoreClient lost connection. Attempting to reconnect.",
+      LOG.warn("MetaStoreClient lost connection. Attempting to reconnect. caughtException: " + caughtException,
           caughtException.getCause());
       Thread.sleep(retryDelaySeconds * 1000);
       base.reconnect();
