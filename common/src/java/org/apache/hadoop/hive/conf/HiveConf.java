@@ -18,9 +18,9 @@
 
 package org.apache.hadoop.hive.conf;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.net.URL;
 import java.util.HashMap;
@@ -29,15 +29,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
-import javax.security.auth.login.LoginException;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.security.UserGroupInformation;
 
 /**
  * Hive Configuration.
@@ -49,7 +46,7 @@ public class HiveConf extends Configuration {
   protected String auxJars;
   private static final Log l4j = LogFactory.getLog(HiveConf.class);
   private static URL hiveSiteURL = null;
-  private static URL confVarURL = null;
+  private static byte[] confVarByteArray = null;
 
   static {
     ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -83,7 +80,8 @@ public class HiveConf extends Configuration {
       HiveConf.ConfVars.METASTOREWAREHOUSE,
       HiveConf.ConfVars.METASTOREURIS,
       HiveConf.ConfVars.METASTORE_MODE,
-      HiveConf.ConfVars.METASTORETHRIFTRETRIES,
+      HiveConf.ConfVars.METASTORETHRIFTCONNECTIONRETRIES,
+      HiveConf.ConfVars.METASTORETHRIFTFAILURERETRIES,
       HiveConf.ConfVars.METASTORE_CLIENT_CONNECT_RETRY_DELAY,
       HiveConf.ConfVars.METASTORE_CLIENT_SOCKET_TIMEOUT,
       HiveConf.ConfVars.METASTOREPWD,
@@ -123,6 +121,7 @@ public class HiveConf extends Configuration {
       HiveConf.ConfVars.METASTORE_END_FUNCTION_LISTENERS,
       HiveConf.ConfVars.METASTORE_PART_INHERIT_TBL_PROPS,
       HiveConf.ConfVars.METASTORE_PRE_EVENT_LISTENERS,
+      HiveConf.ConfVars.METASTORE_TOKEN_SIGNATURE,
       };
 
   /**
@@ -231,7 +230,10 @@ public class HiveConf extends Configuration {
     METASTOREWAREHOUSE("hive.metastore.warehouse.dir", "/user/hive/warehouse"),
     METASTOREURIS("hive.metastore.uris", ""),
     // Number of times to retry a connection to a Thrift metastore server
-    METASTORETHRIFTRETRIES("hive.metastore.connect.retries", 5),
+    METASTORETHRIFTCONNECTIONRETRIES("hive.metastore.connect.retries", 3),
+    // Number of times to retry a Thrift metastore call upon failure
+    METASTORETHRIFTFAILURERETRIES("hive.metastore.failure.retries", 1),
+
     // Number of seconds the client should wait between connection attempts
     METASTORE_CLIENT_CONNECT_RETRY_DELAY("hive.metastore.client.connect.retry.delay", 1),
     // Socket timeout for the client connection (in seconds)
@@ -267,6 +269,7 @@ public class HiveConf extends Configuration {
     METASTORE_KERBEROS_PRINCIPAL("hive.metastore.kerberos.principal",
         "hive-metastore/_HOST@EXAMPLE.COM"),
     METASTORE_USE_THRIFT_SASL("hive.metastore.sasl.enabled", false),
+    METASTORE_TOKEN_SIGNATURE("hive.metastore.token.signature", ""),
     METASTORE_CLUSTER_DELEGATION_TOKEN_STORE_CLS(
         "hive.cluster.delegation.token.store.class",
         "org.apache.hadoop.hive.thrift.MemoryTokenStore"),
@@ -578,6 +581,17 @@ public class HiveConf extends Configuration {
     // beginning and end of Driver.run, these will be run in the order specified
     HIVE_DRIVER_RUN_HOOKS("hive.exec.driver.run.hooks", ""),
     HIVE_DDL_OUTPUT_FORMAT("hive.ddl.output.format", null),
+
+
+    // cosmos custom configuation starts here
+    // use short name for authorization
+    HIVE_USE_SHORT_USER_NAME("hive.use.short.username", false),
+
+
+    // Hive Server authentication
+    HIVESERVER_KERBEROS_KEYTAB_FILE("hive.hiveserver.kerberos.keytab.file", ""),
+    HIVESERVER_KERBEROS_PRINCIPAL("hive.hiveserver.kerberos.principal", ""),
+    HIVESERVER_USE_THRIFT_SASL("hive.hiveserver.sasl.enabled", false),
     ;
 
     public final String varname;
@@ -645,35 +659,34 @@ public class HiveConf extends Configuration {
   }
 
   /**
-   * Writes the default ConfVars out to a temporary File and returns
-   * a URL pointing to the temporary file.
+   * Writes the default ConfVars out to a byte array and returns an input
+   * stream wrapping that byte array.
+   *
    * We need this in order to initialize the ConfVar properties
-   * in the underling Configuration object using the addResource(URL)
+   * in the underling Configuration object using the addResource(InputStream)
    * method.
    *
-   * Using Configuration.addResource(InputStream) would be a preferable
-   * approach, but it turns out that method is broken since Configuration
-   * tries to read the entire contents of the same InputStream repeatedly.
+   * It is important to use a LoopingByteArrayInputStream because it turns out
+   * addResource(InputStream) is broken since Configuration tries to read the
+   * entire contents of the same InputStream repeatedly without resetting it.
+   * LoopingByteArrayInputStream has special logic to handle this.
    */
-  private static synchronized URL getConfVarURL() {
-    if (confVarURL == null) {
+  private static synchronized InputStream getConfVarInputStream() {
+    if (confVarByteArray == null) {
       try {
         Configuration conf = new Configuration();
-        File confVarFile = File.createTempFile("hive-default-", ".xml");
-        confVarFile.deleteOnExit();
 
         applyDefaultNonNullConfVars(conf);
 
-        FileOutputStream fout = new FileOutputStream(confVarFile);
-        conf.writeXml(fout);
-        fout.close();
-        confVarURL = confVarFile.toURI().toURL();
+        ByteArrayOutputStream confVarBaos = new ByteArrayOutputStream();
+        conf.writeXml(confVarBaos);
+        confVarByteArray = confVarBaos.toByteArray();
       } catch (Exception e) {
         // We're pretty screwed if we can't load the default conf vars
         throw new RuntimeException("Failed to initialize default Hive configuration variables!", e);
       }
     }
-    return confVarURL;
+    return new LoopingByteArrayInputStream(confVarByteArray);
   }
 
   public static int getIntVar(Configuration conf, ConfVars var) {
@@ -834,7 +847,7 @@ public class HiveConf extends Configuration {
     origProp = getAllProperties();
 
     // Overlay the ConfVars. Note that this ignores ConfVars with null values
-    addResource(getConfVarURL());
+    addResource(getConfVarInputStream());
 
     // Overlay hive-site.xml if it exists
     if (hiveSiteURL != null) {
@@ -951,13 +964,8 @@ public class HiveConf extends Configuration {
    * @throws IOException
    */
   public String getUser() throws IOException {
-    try {
-      UserGroupInformation ugi = ShimLoader.getHadoopShims()
-        .getUGIForConf(this);
-      return ugi.getUserName();
-    } catch (LoginException le) {
-      throw new IOException(le);
-    }
+    String ret = ShimLoader.getHadoopShims().getUserName(this);
+    return ret;
   }
 
   public static String getColumnInternalName(int pos) {
