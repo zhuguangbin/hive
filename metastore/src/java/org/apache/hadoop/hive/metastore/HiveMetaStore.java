@@ -457,7 +457,10 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       RawStore ms = threadLocalMS.get();
       if (ms != null) {
         ms.shutdown();
+<<<<<<< HEAD
         ms = null;
+=======
+>>>>>>> amp-0.9
         threadLocalMS.remove();
       }
       logInfo("Metastore shutdown complete.");
@@ -1204,6 +1207,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         throws InvalidObjectException, AlreadyExistsException, MetaException {
       boolean success = false, madeDir = false;
       Path partLocation = null;
+      Table tbl = null;
       try {
         try {
           for(MetaStorePreEventListener listener : preListeners){
@@ -1226,7 +1230,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         if (old_part != null) {
           throw new AlreadyExistsException("Partition already exists:" + part);
         }
-        Table tbl = ms.getTable(part.getDbName(), part.getTableName());
+        tbl = ms.getTable(part.getDbName(), part.getTableName());
         if (tbl == null) {
           throw new InvalidObjectException(
               "Unable to add partition because table or database do not exist");
@@ -1303,7 +1307,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           }
         }
         for (MetaStoreEventListener listener : listeners) {
-          listener.onAddPartition(new AddPartitionEvent(part, success, this));
+          listener.onAddPartition(new AddPartitionEvent(tbl, part, success, this));
         }
       }
       Map<Partition, Boolean> returnVal = new HashMap<Partition, Boolean>();
@@ -1411,7 +1415,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           }
         }
         for (MetaStoreEventListener listener : listeners) {
-          listener.onDropPartition(new DropPartitionEvent(part, success, this));
+          listener.onDropPartition(new DropPartitionEvent(tbl, part, success, this));
         }
       }
       return true;
