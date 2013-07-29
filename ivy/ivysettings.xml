@@ -68,11 +68,8 @@
     <chain name="default" dual="true" returnFirst="true" 
            checkmodified="true" 
            changingPattern="${ivy.changingPattern}">
-<<<<<<< HEAD
       <resolver ref="dpmaven"/>
-=======
       <resolver ref="local" />
->>>>>>> amp-0.9
       <resolver ref="apache-snapshot"/>
       <resolver ref="maven2"/>
       <resolver ref="datanucleus-repo"/>

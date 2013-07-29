@@ -18,24 +18,10 @@
 
 package org.apache.hadoop.hive.jdbc;
 
-<<<<<<< HEAD
 import java.io.File;
 import java.io.IOException;
-=======
-import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.api.MetaException;
-import org.apache.hadoop.hive.service.HiveClient;
-import org.apache.hadoop.hive.service.HiveInterface;
-import org.apache.hadoop.hive.service.HiveServer;
-import org.apache.thrift.TException;
-import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.protocol.TProtocol;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
 import java.util.concurrent.Executor;
 
->>>>>>> amp-0.9
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -767,15 +753,12 @@ public class HiveConnection implements java.sql.Connection {
     throw new SQLException("Method not supported");
   }
 
-<<<<<<< HEAD
   /*
    * (non-Javadoc)
    *
    * @see java.sql.Wrapper#unwrap(java.lang.Class)
    */
 
-=======
->>>>>>> amp-0.9
   public <T> T unwrap(Class<T> iface) throws SQLException {
     // TODO Auto-generated method stub
     throw new SQLException("Method not supported");

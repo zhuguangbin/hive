@@ -1772,15 +1772,8 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
     Table tab = null;
 
     try {
-<<<<<<< HEAD
       tab = db.getTable(db.getCurrentDatabase(), tblName, true);
       inputs.add(new ReadEntity(tab));
-=======
-      tab = db.getTable(db.getCurrentDatabase(), tblName, false);
-      if (tab != null) {
-        inputs.add(new ReadEntity(tab));
-      }
->>>>>>> amp-0.9
     } catch (HiveException e) {
       throw new SemanticException(ErrorMsg.INVALID_TABLE.getMsg(tblName));
     }

@@ -353,17 +353,12 @@ public class QTestUtil {
       System.out.println("QTestUtil: " + qf.getName()
         + " EXCLUDE list contains Hadoop Version " + hadoopVer + ". Skipping...");
       qSkipSet.add(qf.getName());
-<<<<<<< HEAD
-     }
-    br.close();
-=======
     } else if (includeQuery && !versionSet.contains(hadoopVer)) {
       System.out.println("QTestUtil: " + qf.getName()
         + " INCLUDE list does not contain Hadoop Version " + hadoopVer + ". Skipping...");
       qSkipSet.add(qf.getName());
     }
-    dis.close();
->>>>>>> amp-0.9
+    br.close();
   }
 
   /**

@@ -457,10 +457,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       RawStore ms = threadLocalMS.get();
       if (ms != null) {
         ms.shutdown();
-<<<<<<< HEAD
         ms = null;
-=======
->>>>>>> amp-0.9
         threadLocalMS.remove();
       }
       logInfo("Metastore shutdown complete.");
