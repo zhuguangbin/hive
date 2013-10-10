@@ -34,15 +34,15 @@ import java.util.Properties;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.hive.common.ServerUtils;
 import org.apache.hadoop.hive.common.LogUtils;
 import org.apache.hadoop.hive.common.LogUtils.LogInitializationException;
+import org.apache.hadoop.hive.common.ServerUtils;
 import org.apache.hadoop.hive.common.cli.CommonCliOptions;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
+import org.apache.hadoop.hive.metastore.TServerSocketKeepAlive;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Schema;
-import org.apache.hadoop.hive.metastore.TServerSocketKeepAlive;
 import org.apache.hadoop.hive.ql.CommandNeedRetryException;
 import org.apache.hadoop.hive.ql.Driver;
 import org.apache.hadoop.hive.ql.plan.api.QueryPlan;
@@ -51,6 +51,7 @@ import org.apache.hadoop.hive.ql.processors.CommandProcessorFactory;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.shims.ShimLoader;
+import org.apache.hadoop.hive.thrift.HadoopThriftAuthBridge;
 import org.apache.hadoop.mapred.ClusterStatus;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
@@ -62,8 +63,7 @@ import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportFactory;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+
 import com.facebook.fb303.fb_status;
 
 /**
@@ -116,7 +116,8 @@ public class HiveServer extends ThriftHive {
     /**
      * Construct a new handler.
      *
-     * @throws MetaException unable to create metastore
+     * @throws MetaException
+     *           unable to create metastore
      */
     public HiveServerHandler() throws MetaException {
       this(new HiveConf(SessionState.class));
@@ -125,8 +126,10 @@ public class HiveServer extends ThriftHive {
     /**
      * Construct a new handler with the specified hive configuration.
      *
-     * @param conf caller specified hive configuration
-     * @throws MetaException unable to create metastore
+     * @param conf
+     *          caller specified hive configuration
+     * @throws MetaException
+     *           unable to create metastore
      */
     public HiveServerHandler(HiveConf conf) throws MetaException {
       super(HiveServer.class.getName(), conf);
@@ -143,7 +146,8 @@ public class HiveServer extends ThriftHive {
         LOG.info("Putting temp output to file " + session.getTmpOutputFile().toString());
         session.in = null; // hive server's session input stream is not used
         // open a per-session file in auto-flush mode for writing temp results
-        session.out = new PrintStream(new FileOutputStream(session.getTmpOutputFile()), true, "UTF-8");
+        session.out = new PrintStream(new FileOutputStream(session.getTmpOutputFile()), true,
+            "UTF-8");
         // TODO: for hadoop jobs, progress is printed out to session.err,
         // we should find a way to feed back job progress to client
         session.err = new PrintStream(System.err, true, "UTF-8");
@@ -211,7 +215,7 @@ public class HiveServer extends ThriftHive {
       } catch (Exception e) {
         HiveServerException ex = new HiveServerException();
         ex.setMessage("Error running query: " + e.toString());
-        ex.setErrorCode(ret == 0? -10000: ret);
+        ex.setErrorCode(ret == 0 ? -10000 : ret);
         throw ex;
       }
 
@@ -248,7 +252,8 @@ public class HiveServer extends ThriftHive {
         drv.init();
 
         ClusterStatus cs = drv.getClusterStatus();
-        JobTrackerState state = JobTrackerState.valueOf(ShimLoader.getHadoopShims().getJobTrackerState(cs).name());
+        JobTrackerState state = JobTrackerState.valueOf(ShimLoader.getHadoopShims()
+            .getJobTrackerState(cs).name());
 
         hcs = new HiveClusterStatus(cs.getTaskTrackers(), cs.getMapTasks(), cs
             .getReduceTasks(), cs.getMaxMapTasks(), cs.getMaxReduceTasks(),
@@ -278,7 +283,7 @@ public class HiveServer extends ThriftHive {
         }
       }
 
-      assert driver != null: "getSchema() is called on a Hive query and driver is NULL.";
+      assert driver != null : "getSchema() is called on a Hive query and driver is NULL.";
 
       try {
         Schema schema = driver.getSchema();
@@ -305,7 +310,7 @@ public class HiveServer extends ThriftHive {
         return new Schema();
       }
 
-      assert driver != null: "getThriftSchema() is called on a Hive query and driver is NULL.";
+      assert driver != null : "getThriftSchema() is called on a Hive query and driver is NULL.";
 
       try {
         Schema schema = driver.getThriftSchema();
@@ -337,12 +342,12 @@ public class HiveServer extends ThriftHive {
         readResults(results, 1);
         if (results.size() > 0) {
           return results.get(0);
-        } else { //  throw an EOF exception
+        } else { // throw an EOF exception
           throw new HiveServerException("OK", 0, "");
         }
       }
 
-      assert driver != null: "fetchOne() is called on a Hive query and driver is NULL.";
+      assert driver != null : "fetchOne() is called on a Hive query and driver is NULL.";
 
       ArrayList<String> result = new ArrayList<String>();
       driver.setMaxRows(1);
@@ -354,7 +359,7 @@ public class HiveServer extends ThriftHive {
         // TODO: Returning empty string for now. Need to figure out how to
         // TODO: return null in some other way
         throw new HiveServerException("OK", 0, "");
-       // return "";
+        // return "";
       } catch (CommandNeedRetryException e) {
         HiveServerException ex = new HiveServerException();
         ex.setMessage(e.getMessage());
@@ -378,8 +383,11 @@ public class HiveServer extends ThriftHive {
     /**
      * Reads the temporary results for non-Hive (non-Driver) commands to the
      * resulting List of strings.
-     * @param results list of strings containing the results
-     * @param nLines number of lines read at once. If it is <= 0, then read all lines.
+     *
+     * @param results
+     *          list of strings containing the results
+     * @param nLines
+     *          number of lines read at once. If it is <= 0, then read all lines.
      */
     private void readResults(List<String> results, int nLines) {
 
@@ -443,7 +451,7 @@ public class HiveServer extends ThriftHive {
         return result;
       }
 
-      assert driver != null: "fetchN() is called on a Hive query and driver is NULL.";
+      assert driver != null : "fetchN() is called on a Hive query and driver is NULL.";
 
       driver.setMaxRows(numRows);
       try {
@@ -522,7 +530,7 @@ public class HiveServer extends ThriftHive {
         return qp;
       }
 
-      assert driver != null: "getQueryPlan() is called on a Hive query and driver is NULL.";
+      assert driver != null : "getQueryPlan() is called on a Hive query and driver is NULL.";
 
       // TODO for now only return one query at a time
       // going forward, all queries associated with a single statement
@@ -545,10 +553,13 @@ public class HiveServer extends ThriftHive {
    */
   public static class ThriftHiveProcessorFactory extends TProcessorFactory {
     private final HiveConf conf;
+    private HadoopThriftAuthBridge.Server saslServer = null;
 
-    public ThriftHiveProcessorFactory(TProcessor processor, HiveConf conf) {
+    public ThriftHiveProcessorFactory(TProcessor processor, HiveConf conf,
+        HadoopThriftAuthBridge.Server _server) {
       super(processor);
       this.conf = conf;
+      this.saslServer = _server;
     }
 
     @Override
@@ -556,7 +567,11 @@ public class HiveServer extends ThriftHive {
     public TProcessor getProcessor(TTransport trans) {
       try {
         Iface handler = new HiveServerHandler(new HiveConf(conf));
-        return new ThriftHive.Processor(handler);
+        if (saslServer == null) {
+          return new ThriftHive.Processor(handler);
+        } else {
+          return saslServer.wrapProcessor(new ThriftHive.Processor(handler));
+        }
       } catch (Exception e) {
         HiveServerHandler.LOG.warn("Failed to get processor by exception " + e, e);
         trans.close();
@@ -616,7 +631,7 @@ public class HiveServer extends ThriftHive {
         // complain about the deprecated syntax -- but still run
         System.err.println(
             "This usage has been deprecated, consider using the new command "
-            + "line syntax (run with -h to see usage information)");
+                + "line syntax (run with -h to see usage information)");
 
         port = Integer.parseInt(args[0]);
       }
@@ -671,28 +686,45 @@ public class HiveServer extends ThriftHive {
 
       boolean tcpKeepAlive = conf.getBoolVar(HiveConf.ConfVars.SERVER_TCP_KEEP_ALIVE);
 
-      TServerTransport serverTransport = tcpKeepAlive ? new TServerSocketKeepAlive(cli.port) : new TServerSocket(cli.port, 1000 * conf.getIntVar(HiveConf.ConfVars.SERVER_READ_SOCKET_TIMEOUT));
+      TServerTransport serverTransport = tcpKeepAlive ? new TServerSocketKeepAlive(cli.port)
+          : new TServerSocket(cli.port,
+              1000 * conf.getIntVar(HiveConf.ConfVars.SERVER_READ_SOCKET_TIMEOUT));
 
       // set all properties specified on the command line
       for (Map.Entry<Object, Object> item : hiveconf.entrySet()) {
         conf.set((String) item.getKey(), (String) item.getValue());
       }
 
-      ThriftHiveProcessorFactory hfactory =
-        new ThriftHiveProcessorFactory(null, conf);
+      boolean useSasl = conf.getBoolVar(HiveConf.ConfVars.HIVESERVER_USE_THRIFT_SASL);
+
+      TTransportFactory transFactory;
+      ThriftHiveProcessorFactory hfactory;
+      if (useSasl) {
+        HadoopThriftAuthBridge.Server saslServer = ShimLoader.getHadoopThriftAuthBridge()
+            .createServer(
+                conf.getVar(HiveConf.ConfVars.HIVESERVER_KERBEROS_KEYTAB_FILE),
+                conf.getVar(HiveConf.ConfVars.HIVESERVER_KERBEROS_PRINCIPAL));
+
+        saslServer.startDelegationTokenSecretManager(conf);
+        hfactory = new ThriftHiveProcessorFactory(null, conf, saslServer);
+        transFactory = saslServer.createTransportFactory();
+      } else {
+        transFactory = new TTransportFactory();
+        hfactory = new ThriftHiveProcessorFactory(null, conf, null);
+      }
 
       TThreadPoolServer.Args sargs = new TThreadPoolServer.Args(serverTransport)
-        .processorFactory(hfactory)
-        .transportFactory(new TTransportFactory())
-        .protocolFactory(new TBinaryProtocol.Factory())
-        .minWorkerThreads(cli.minWorkerThreads)
-        .maxWorkerThreads(cli.maxWorkerThreads);
+          .processorFactory(hfactory)
+          .transportFactory(transFactory)
+          .protocolFactory(new TBinaryProtocol.Factory())
+          .minWorkerThreads(cli.minWorkerThreads)
+          .maxWorkerThreads(cli.maxWorkerThreads);
 
       TServer server = new TThreadPoolServer(sargs);
 
       String msg = "Starting hive server on port " + cli.port
-        + " with " + cli.minWorkerThreads + " min worker threads and "
-        + cli.maxWorkerThreads + " max worker threads";
+          + " with " + cli.minWorkerThreads + " min worker threads and "
+          + cli.maxWorkerThreads + " max worker threads";
       HiveServerHandler.LOG.info(msg);
 
       HiveServerHandler.LOG.info("TCP keepalive = " + tcpKeepAlive);
