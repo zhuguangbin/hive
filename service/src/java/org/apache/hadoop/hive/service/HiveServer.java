@@ -53,6 +53,7 @@ import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.hive.thrift.HadoopThriftAuthBridge;
 import org.apache.hadoop.mapred.ClusterStatus;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TProcessorFactory;
@@ -239,6 +240,12 @@ public class HiveServer extends ThriftHive {
         session.getTmpOutputFile().delete();
       }
       pipeIn = null;
+      try {
+        LOG.info("Start to close filesystem for ugi:" + UserGroupInformation.getCurrentUser().getUserName());
+        ShimLoader.getHadoopShims().closeAllForUGI(UserGroupInformation.getCurrentUser());
+      } catch (IOException ioe) {
+        ioe.printStackTrace();
+      }
     }
 
     /**
