@@ -762,6 +762,11 @@ public class HiveConf extends Configuration {
       "org.apache.hadoop.hive.ql.exec.PTFPersistence$PartitionedByteBasedList"),
     HIVE_PTF_PARTITION_PERSISTENT_SIZE("hive.ptf.partition.persistence.memsize",
       (int) Math.pow(2, (5 + 10 + 10)) ), // 32MB
+
+    // Hive Server authentication
+    HIVESERVER_KERBEROS_KEYTAB_FILE("hive.hiveserver.kerberos.keytab.file", ""),
+    HIVESERVER_KERBEROS_PRINCIPAL("hive.hiveserver.kerberos.principal", ""),
+    HIVESERVER_USE_THRIFT_SASL("hive.hiveserver.sasl.enabled", false),
     ;
 
     public final String varname;

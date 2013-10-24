@@ -546,12 +546,13 @@ import static org.apache.hadoop.fs.CommonConfigurationKeys.HADOOP_SECURITY_AUTHE
          Socket socket = ((TSocket)(saslTrans.getUnderlyingTransport())).getSocket();
          remoteAddress.set(socket.getInetAddress());
          UserGroupInformation clientUgi = null;
+         boolean returnCode = false;
          try {
            if (useProxy) {
              clientUgi = UserGroupInformation.createProxyUser(
                endUser, UserGroupInformation.getLoginUser());
              remoteUser.set(clientUgi.getShortUserName());
-             return clientUgi.doAs(new PrivilegedExceptionAction<Boolean>() {
+             returnCode = clientUgi.doAs(new PrivilegedExceptionAction<Boolean>() {
                  public Boolean run() {
                    try {
                      return wrapped.process(inProt, outProt);
@@ -575,13 +576,17 @@ import static org.apache.hadoop.fs.CommonConfigurationKeys.HADOOP_SECURITY_AUTHE
            throw new RuntimeException(ioe); // unexpected!
          }
          finally {
-           if (clientUgi != null) {
-            try { FileSystem.closeAllForUGI(clientUgi); }
-              catch(IOException exception) {
-                LOG.error("Could not clean up file-system handles for UGI: " + clientUgi, exception);
-              }
-          }
+           if (!returnCode) {
+             if (clientUgi != null) {
+               LOG.info("Start to close filesystem for clientUgi:" + clientUgi.getUserName());
+               try { FileSystem.closeAllForUGI(clientUgi); }
+                 catch(IOException exception) {
+                   LOG.error("Could not clean up file-system handles for UGI: " + clientUgi, exception);
+                 }
+             }
+           }
          }
+         return returnCode;
        }
      }
 
