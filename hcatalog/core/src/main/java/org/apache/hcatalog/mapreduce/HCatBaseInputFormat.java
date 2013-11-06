@@ -21,16 +21,16 @@ package org.apache.hcatalog.mapreduce;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -40,7 +40,6 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.StringUtils;
-
 import org.apache.hcatalog.common.HCatConstants;
 import org.apache.hcatalog.common.HCatUtil;
 import org.apache.hcatalog.data.HCatRecord;
@@ -109,56 +108,58 @@ public abstract class HCatBaseInputFormat
             throw new IOException(e);
         }
 
+        return getSplits(jobContext, inputJobInfo);
+    }
+
+    protected List<InputSplit> getSplits(JobContext jobContext, InputJobInfo inputJobInfo)
+    throws IOException, InterruptedException{
         List<InputSplit> splits = new ArrayList<InputSplit>();
         List<PartInfo> partitionInfoList = inputJobInfo.getPartitions();
-        if (partitionInfoList == null) {
-            //No partitions match the specified partition filter
-            return splits;
+        if(partitionInfoList == null ) {
+          //No partitions match the specified partition filter
+          return splits;
         }
 
         HCatStorageHandler storageHandler;
         JobConf jobConf;
+        Configuration conf = jobContext.getConfiguration();
         //For each matching partition, call getSplits on the underlying InputFormat
-        for (PartInfo partitionInfo : partitionInfoList) {
-            jobConf = HCatUtil.getJobConfFromContext(jobContext);
-            setInputPath(jobConf, partitionInfo.getLocation());
-            Map<String, String> jobProperties = partitionInfo.getJobProperties();
+        for(PartInfo partitionInfo : partitionInfoList) {
+          jobConf = HCatUtil.getJobConfFromContext(jobContext);
+          setInputPath(jobConf, partitionInfo.getLocation());
+          Map<String,String> jobProperties = partitionInfo.getJobProperties();
 
-            HCatSchema allCols = new HCatSchema(new LinkedList<HCatFieldSchema>());
-            for (HCatFieldSchema field :
-                inputJobInfo.getTableInfo().getDataColumns().getFields())
-                allCols.append(field);
-            for (HCatFieldSchema field :
-                inputJobInfo.getTableInfo().getPartitionColumns().getFields())
-                allCols.append(field);
+          HCatSchema allCols = new HCatSchema(new LinkedList<HCatFieldSchema>());
+          for(HCatFieldSchema field:
+              inputJobInfo.getTableInfo().getDataColumns().getFields()) {
+            allCols.append(field);
+          }
+          for(HCatFieldSchema field:
+              inputJobInfo.getTableInfo().getPartitionColumns().getFields()) {
+            allCols.append(field);
+          }
 
-            HCatUtil.copyJobPropertiesToJobConf(jobProperties, jobConf);
+          HCatUtil.copyJobPropertiesToJobConf(jobProperties, jobConf);
 
-            storageHandler = HCatUtil.getStorageHandler(
-                jobConf, partitionInfo);
+          storageHandler = HCatUtil.getStorageHandler(
+              jobConf, partitionInfo);
 
-            //Get the input format
-            Class inputFormatClass = storageHandler.getInputFormatClass();
-            org.apache.hadoop.mapred.InputFormat inputFormat =
-                getMapRedInputFormat(jobConf, inputFormatClass);
+          //Get the input format
+          Class inputFormatClass = storageHandler.getInputFormatClass();
+          org.apache.hadoop.mapred.InputFormat inputFormat =
+                                getMapRedInputFormat(jobConf, inputFormatClass);
 
-            //Call getSplit on the InputFormat, create an HCatSplit for each
-            //underlying split. When the desired number of input splits is missing,
-            //use a default number (denoted by zero).
-            //TODO(malewicz): Currently each partition is split independently into
-            //a desired number. However, we want the union of all partitions to be
-            //split into a desired number while maintaining balanced sizes of input
-            //splits.
-            int desiredNumSplits =
-                conf.getInt(HCatConstants.HCAT_DESIRED_PARTITION_NUM_SPLITS, 0);
-            org.apache.hadoop.mapred.InputSplit[] baseSplits =
-                inputFormat.getSplits(jobConf, desiredNumSplits);
+          //Call getSplit on the InputFormat, create an
+          //HCatSplit for each underlying split
+          //NumSplits is 0 for our purposes
+          org.apache.hadoop.mapred.InputSplit[] baseSplits =
+            inputFormat.getSplits(jobConf, 0);
 
-            for (org.apache.hadoop.mapred.InputSplit split : baseSplits) {
-                splits.add(new HCatSplit(
-                    partitionInfo,
-                    split, allCols));
-            }
+          for(org.apache.hadoop.mapred.InputSplit split : baseSplits) {
+            splits.add(new HCatSplit(
+                partitionInfo,
+                split,allCols));
+          }
         }
 
         return splits;
@@ -203,7 +204,7 @@ public abstract class HCatBaseInputFormat
     /**
      * gets values for fields requested by output schema which will not be in the data
      */
-    private static Map<String, String> getColValsNotInDataColumns(HCatSchema outputSchema,
+    protected static Map<String, String> getColValsNotInDataColumns(HCatSchema outputSchema,
                                                                   PartInfo partInfo) {
         HCatSchema dataSchema = partInfo.getPartitionSchema();
         Map<String, String> vals = new HashMap<String, String>();
@@ -226,6 +227,7 @@ public abstract class HCatBaseInputFormat
      * @see org.apache.hcatalog.mapreduce.HCatBaseInputFormat#getTableSchema(org.apache.hadoop.conf.Configuration)
      * @deprecated Use {@link #getTableSchema(org.apache.hadoop.conf.Configuration)}
      */
+    @Deprecated
     public static HCatSchema getTableSchema(JobContext context)
         throws IOException {
         return getTableSchema(context.getConfiguration());
@@ -246,11 +248,13 @@ public abstract class HCatBaseInputFormat
         InputJobInfo inputJobInfo = getJobInfo(conf);
         HCatSchema allCols = new HCatSchema(new LinkedList<HCatFieldSchema>());
         for (HCatFieldSchema field :
-            inputJobInfo.getTableInfo().getDataColumns().getFields())
-            allCols.append(field);
+            inputJobInfo.getTableInfo().getDataColumns().getFields()) {
+          allCols.append(field);
+        }
         for (HCatFieldSchema field :
-            inputJobInfo.getTableInfo().getPartitionColumns().getFields())
-            allCols.append(field);
+            inputJobInfo.getTableInfo().getPartitionColumns().getFields()) {
+          allCols.append(field);
+        }
         return allCols;
     }
 

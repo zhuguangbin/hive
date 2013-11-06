@@ -57,6 +57,15 @@ class InitializeInput {
         setInput(job.getConfiguration(), theirInputJobInfo);
     }
 
+    public static void setInput(Job job, ArrayList<InputJobInfo> inputJobInfoList) throws Exception {
+      for(InputJobInfo inputJobInfo : inputJobInfoList){
+        getInputJobInfo(job.getConfiguration(), inputJobInfo, null);
+      }
+      job.getConfiguration().set(
+                      HCatConstants.HCAT_KEY_MULTI_INPUT_JOBS_INFO,
+                      HCatUtil.serialize(inputJobInfoList));
+    }
+
     /**
      * Set the input to use for the Job. This queries the metadata server with the specified
      * partition predicates, gets the matching partitions, and puts the information in the job
