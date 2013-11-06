@@ -18,19 +18,13 @@
  */
 package org.apache.hcatalog.mapreduce;
 
-import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.hadoop.hive.metastore.MetaStoreUtils;
-
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Properties;
-import java.util.zip.Deflater;
-import java.util.zip.DeflaterOutputStream;
-import java.util.zip.InflaterInputStream;
+
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
+import org.apache.hadoop.hive.common.classification.InterfaceStability;
+import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 
 /**
  * Container for metadata read from the metadata server.
@@ -56,13 +50,13 @@ public class InputJobInfo implements Serializable {
     private HCatTableInfo tableInfo;
 
     /** The partition filter */
-    private String filter;
+    private final String filter;
 
     /** The list of partitions matching the filter. */
-    transient private List<PartInfo> partitions;
+    private List<PartInfo> partitions;
 
     /** implementation specific job properties */
-    private Properties properties;
+    private final Properties properties;
 
     /**
      * Initializes a new InputJobInfo
@@ -168,34 +162,5 @@ public class InputJobInfo implements Serializable {
      */
     public Properties getProperties() {
         return properties;
-    }
-
-    /**
-     * Serialize this object, compressing the partitions which can exceed the
-     * allowed jobConf size.
-     * @see <a href="https://issues.apache.org/jira/browse/HCATALOG-453">HCATALOG-453</a>
-     */
-    private void writeObject(ObjectOutputStream oos)
-        throws IOException {
-        oos.defaultWriteObject();
-        Deflater def = new Deflater(Deflater.BEST_COMPRESSION);
-        ObjectOutputStream partInfoWriter =
-            new ObjectOutputStream(new DeflaterOutputStream(oos, def));
-        partInfoWriter.writeObject(partitions);
-        partInfoWriter.close();
-    }
-
-    /**
-     * Deserialize this object, decompressing the partitions which can exceed the
-     * allowed jobConf size.
-     * @see <a href="https://issues.apache.org/jira/browse/HCATALOG-453">HCATALOG-453</a>
-     */
-    @SuppressWarnings("unchecked")
-    private void readObject(ObjectInputStream ois)
-        throws IOException, ClassNotFoundException {
-        ois.defaultReadObject();
-        ObjectInputStream partInfoReader =
-            new ObjectInputStream(new InflaterInputStream(ois));
-        partitions = (List<PartInfo>)partInfoReader.readObject();
     }
 }
