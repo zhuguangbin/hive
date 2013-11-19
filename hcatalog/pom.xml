@@ -192,6 +192,15 @@
         <checksumPolicy>warn</checksumPolicy>
       </releases>
     </repository>
+    <repository>
+       <id>maven2-central</id>
+       <name>Maven2 Central Repository</name>
+       <layout>default</layout>
+       <url>http://repo1.maven.org/maven2</url>
+       <snapshots>
+         <enabled>true</enabled>
+       </snapshots>
+    </repository>
 
     <!-- A transitive dependency defines this repo in its pom, however, the repo
        has moved and causes dependency resolutions for 'asm:asm:pom:3.1'. Here we
