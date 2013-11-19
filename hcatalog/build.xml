@@ -257,15 +257,19 @@
 
     <target name="mvn-deploy" depends="mvn-init"
             description="Deploy artifacts to a Maven repository.">
-        <artifact:deploy file="pom.xml">
+        <!--
+	 <artifact:deploy file="pom.xml">
             <artifact:pom file="pom.xml"/>
             <remoteRepository id="${mvn.deploy.repo.id}" url="${mvn.deploy.repo.url}"/>
         </artifact:deploy>
+	-->
         <ant target="mvn-deploy" dir="core" inheritAll="false" useNativeBasedir="true"/>
-        <ant target="mvn-deploy" dir="hcatalog-pig-adapter" inheritAll="false" useNativeBasedir="true"/>
+        <!--
+	 <ant target="mvn-deploy" dir="hcatalog-pig-adapter" inheritAll="false" useNativeBasedir="true"/>
         <ant target="mvn-deploy" dir="server-extensions" inheritAll="false" useNativeBasedir="true"/>
         <ant target="mvn-deploy" dir="webhcat/java-client" inheritAll="false" useNativeBasedir="true"/>
         <ant target="mvn-deploy" dir="webhcat/svr" inheritAll="false" useNativeBasedir="true"/>
+	-->
     </target>
 
     <target name="mvn-deploy-signed" depends="mvn-init"

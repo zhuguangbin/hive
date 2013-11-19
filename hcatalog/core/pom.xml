@@ -31,6 +31,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.apache.hcatalog</groupId>
     <artifactId>hcatalog-core</artifactId>
+    <version>0.11.0-dp-1</version>
     <packaging>jar</packaging>
     <name>hcatalog-core</name>
     <url>http://maven.apache.org</url>
@@ -61,25 +62,25 @@
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-cli</artifactId>
-            <version>${hive.version}</version>
+            <version>${hive.dp.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-metastore</artifactId>
-            <version>${hive.version}</version>
+            <version>${hive.dp.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-common</artifactId>
-            <version>${hive.version}</version>
+            <version>${hive.dp.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-exec</artifactId>
-            <version>${hive.version}</version>
+            <version>${hive.dp.version}</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

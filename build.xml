@@ -512,7 +512,7 @@
         inheritAll="false"/>
     <mkdir dir="${target.dir}/hcatalog"/>
     <copy todir="${target.dir}/hcatalog">
-        <fileset dir="${hive.root}/hcatalog/build/hcatalog-${version}"/>
+        <fileset dir="${hive.root}/hcatalog/build/hcatalog-${hcat.origin.version}"/>
     </copy>
   </target>
 
@@ -1225,7 +1225,7 @@
         </then>
       </elseif>
       <else>
-        <ant dir="hcatalog" target="mvn-deploy-signed">
+        <ant dir="hcatalog" target="mvn-deploy">
           <property name="mvn.deploy.repo.id" value="${mvn.deploy.id}"/>
           <property name="mvn.deploy.repo.url" value="${mvn.deploy.url}"/>
         </ant>
