@@ -214,7 +214,6 @@ public class Partition implements Serializable {
     getInputFormatClass();
     // This will set up field: outputFormatClass
     getOutputFormatClass();
-    getDeserializer();
   }
 
   public String getName() {
@@ -274,10 +273,6 @@ public class Partition implements Serializable {
 
   public Properties getSchema() {
     return MetaStoreUtils.getSchema(tPartition, table.getTTable());
-  }
-
-  public Properties getMetadataFromPartitionSchema() {
-    return MetaStoreUtils.getPartitionMetadata(tPartition, table.getTTable());
   }
 
   public Properties getSchemaFromTableSchema(Properties tblSchema) {
