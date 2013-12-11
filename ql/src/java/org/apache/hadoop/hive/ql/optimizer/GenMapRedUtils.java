@@ -109,7 +109,7 @@ public final class GenMapRedUtils {
     List<Task<? extends Serializable>> rootTasks = opProcCtx.getRootTasks();
 
     if (!rootTasks.contains(currTask)
-        && (currTask.getParentTasks() == null 
+        && (currTask.getParentTasks() == null
             || currTask.getParentTasks().isEmpty())) {
       rootTasks.add(currTask);
     }
@@ -619,12 +619,7 @@ public final class GenMapRedUtils {
 
         partDir.add(p);
         try {
-          if (part.getTable().isPartitioned()) {
-            partDesc.add(Utilities.getPartitionDesc(part));
-          }
-          else {
-            partDesc.add(Utilities.getPartitionDescFromTableDesc(tblDesc, part));
-          }
+          partDesc.add(Utilities.getPartitionDescFromTableDesc(tblDesc, part));
         } catch (HiveException e) {
           LOG.error(org.apache.hadoop.util.StringUtils.stringifyException(e));
           throw new SemanticException(e.getMessage(), e);
