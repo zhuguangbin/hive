@@ -1534,7 +1534,7 @@ public final class Utilities {
   }
 
   public static String getNameMessage(Exception e) {
-    return e.getClass().getName() + "(" + e.getMessage() + "), Caused by: " + e.getCause().toString() ;
+    return e.getClass().getName() + "(" + e.getMessage() + "), Caused by: " + e.getCause() ;
   }
 
   public static String getResourceFiles(Configuration conf, SessionState.ResourceType t) {
