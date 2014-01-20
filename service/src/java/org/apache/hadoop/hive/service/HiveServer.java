@@ -45,6 +45,7 @@ import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.ql.CommandNeedRetryException;
 import org.apache.hadoop.hive.ql.Driver;
+import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.plan.api.QueryPlan;
 import org.apache.hadoop.hive.ql.processors.CommandProcessor;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorFactory;
@@ -193,6 +194,14 @@ public class HiveServer extends ThriftHive {
         }
         CommandProcessor proc = CommandProcessorFactory.get(tokens[0]);
         if (proc != null) {
+          SessionState ss = SessionState.get();
+          ss.setAuthenticator(HiveUtils.getAuthenticator(
+              ss.getConf(),HiveConf.ConfVars.HIVE_AUTHENTICATOR_MANAGER));
+          ss.setAuthorizer(HiveUtils.getAuthorizeProviderManager(
+              ss.getConf(), HiveConf.ConfVars.HIVE_AUTHORIZATION_MANAGER,
+              ss.getAuthenticator()));
+
+
           if (proc instanceof Driver) {
             isHiveQuery = true;
             driver = (Driver) proc;
