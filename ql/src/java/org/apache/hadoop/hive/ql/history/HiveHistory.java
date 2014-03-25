@@ -174,7 +174,16 @@ public class HiveHistory {
       String tuple = matcher.group(0);
       String[] parts = tuple.split("=");
 
-      parseBuffer.put(parts[0], parts[1].substring(1, parts[1].length() - 1));
+      StringBuilder sb = new StringBuilder();
+      for (int i = 1; i < parts.length; i++) {
+        sb.append(parts[i]);
+      }
+      String queryString = sb.toString();
+      if (queryString.startsWith("\"") && queryString.endsWith("\"")) {
+        queryString = queryString.substring(1, queryString.length() - 1);
+      }
+
+      parseBuffer.put(parts[0], queryString);
     }
 
     l.handle(RecordTypes.valueOf(recType), parseBuffer);
