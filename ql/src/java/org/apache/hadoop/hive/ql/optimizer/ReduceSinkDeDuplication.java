@@ -18,6 +18,11 @@
 
 package org.apache.hadoop.hive.ql.optimizer;
 
+import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVECONVERTJOIN;
+import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVECONVERTJOINNOCONDITIONALTASK;
+import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVEOPTREDUCEDEDUPLICATIONMINREDUCER;
+import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVESCRIPTOPERATORTRUST;
+
 import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -29,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.exec.ExtractOperator;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
@@ -63,11 +69,6 @@ import org.apache.hadoop.hive.ql.plan.JoinDesc;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
 import org.apache.hadoop.hive.ql.plan.SelectDesc;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
-
-import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVECONVERTJOIN;
-import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVECONVERTJOINNOCONDITIONALTASK;
-import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVEOPTREDUCEDEDUPLICATIONMINREDUCER;
-import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVESCRIPTOPERATORTRUST;
 
 /**
  * If two reducer sink operators share the same partition/sort columns and order,
@@ -363,17 +364,51 @@ public class ReduceSinkDeDuplication implements Transform{
         return false;
       }
       if (result[0] > 0) {
-        ArrayList<ExprNodeDesc> childKCs = cRS.getConf().getKeyCols();
+       // The sorting columns of the child RS are more specific than
+        // those of the parent RS. Assign sorting columns of the child RS
+        // to the parent RS.
+        List<ExprNodeDesc> childKCs = cRS.getConf().getKeyCols();
         pRS.getConf().setKeyCols(ExprNodeDescUtils.backtrack(childKCs, cRS, pRS));
       }
-      if (result[1] > 0) {
-        ArrayList<ExprNodeDesc> childPCs = cRS.getConf().getPartitionCols();
-        pRS.getConf().setPartitionCols(ExprNodeDescUtils.backtrack(childPCs, cRS, pRS));
+
+      if (result[1] < 0) {
+        // The partitioning columns of the parent RS are more specific than
+         // those of the child RS.
+        List<ExprNodeDesc> childPCs = cRS.getConf().getPartitionCols();
+        if (childPCs != null && !childPCs.isEmpty()) {
+          // If partitioning columns of the child RS are assigned,
+          // assign these to the partitioning columns of the parent RS.
+          pRS.getConf().setPartitionCols(ExprNodeDescUtils.backtrack(childPCs, cRS, pRS));
+        }
+      } else if (result[1] > 0) {
+        // The partitioning columns of the child RS are more specific than
+        // those of the parent RS.
+        List<ExprNodeDesc> parentPCs = pRS.getConf().getPartitionCols();
+        if (parentPCs == null || parentPCs.isEmpty()) {
+          // If partitioning columns of the parent RS are not assigned,
+          // assign partitioning columns of the child RS to the parent RS.
+          ArrayList<ExprNodeDesc> childPCs = cRS.getConf().getPartitionCols();
+          pRS.getConf().setPartitionCols(ExprNodeDescUtils.backtrack(childPCs, cRS, pRS));
+        }
       }
+
       if (result[2] > 0) {
+        // The sorting order of the child RS is more specific than
+        // that of the parent RS. Assign the sorting order of the child RS
+        // to the parent RS.
+        if (result[0] <= 0) {
+          // Sorting columns of the parent RS are more specific than those of the
+          // child RS but Sorting order of the child RS is more specific than
+          // that of the parent RS.
+          throw new SemanticException("Sorting columns and order don't match. " +
+              "Try set " + HiveConf.ConfVars.HIVEOPTREDUCEDEDUPLICATION + "=false;");
+        }
         pRS.getConf().setOrder(cRS.getConf().getOrder());
       }
       if (result[3] > 0) {
+        // The number of reducers of the child RS is more specific than
+        // that of the parent RS. Assign the number of reducers of the child RS
+        // to the parent RS.
         pRS.getConf().setNumReducers(cRS.getConf().getNumReducers());
       }
       return true;
@@ -658,6 +693,7 @@ public class ReduceSinkDeDuplication implements Transform{
   static class GroupbyReducerProc extends AbsctractReducerReducerProc {
 
     // pRS-pGBY-cRS
+    @Override
     public Object process(ReduceSinkOperator cRS, ParseContext context)
         throws SemanticException {
       GroupByOperator pGBY = findPossibleParent(cRS, GroupByOperator.class, trustScript());
@@ -673,6 +709,7 @@ public class ReduceSinkDeDuplication implements Transform{
     }
 
     // pRS-pGBY-cRS-cGBY
+    @Override
     public Object process(ReduceSinkOperator cRS, GroupByOperator cGBY, ParseContext context)
         throws SemanticException {
       Operator<?> start = getStartForGroupBy(cRS);
@@ -692,6 +729,7 @@ public class ReduceSinkDeDuplication implements Transform{
   static class JoinReducerProc extends AbsctractReducerReducerProc {
 
     // pRS-pJOIN-cRS
+    @Override
     public Object process(ReduceSinkOperator cRS, ParseContext context)
         throws SemanticException {
       JoinOperator pJoin = findPossibleParent(cRS, JoinOperator.class, trustScript());
@@ -704,6 +742,7 @@ public class ReduceSinkDeDuplication implements Transform{
     }
 
     // pRS-pJOIN-cRS-cGBY
+    @Override
     public Object process(ReduceSinkOperator cRS, GroupByOperator cGBY, ParseContext context)
         throws SemanticException {
       Operator<?> start = getStartForGroupBy(cRS);
@@ -720,6 +759,7 @@ public class ReduceSinkDeDuplication implements Transform{
   static class ReducerReducerProc extends AbsctractReducerReducerProc {
 
     // pRS-cRS
+    @Override
     public Object process(ReduceSinkOperator cRS, ParseContext context)
         throws SemanticException {
       ReduceSinkOperator pRS = findPossibleParent(cRS, ReduceSinkOperator.class, trustScript());
@@ -731,6 +771,7 @@ public class ReduceSinkDeDuplication implements Transform{
     }
 
     // pRS-cRS-cGBY
+    @Override
     public Object process(ReduceSinkOperator cRS, GroupByOperator cGBY, ParseContext context)
         throws SemanticException {
       Operator<?> start = getStartForGroupBy(cRS);
